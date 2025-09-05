@@ -1,0 +1,56 @@
+MAZE OF UCSC
+|
++-- 1. GAME OVERVIEW
+|   |-- Goal: Capture the Flag
+|   +-- Type: 3-Player Maze Runner (A, B, C)
+|
++-- 2. MAZE STRUCTURE
+|   |-- Floors: 3 (10x25 grid)
+|   |   |-- Floor 1 (Ground): 856 sq ft, contains 4x9 starting area
+|   |   |-- Floor 2: 784 sq ft, two rectangular areas joined by a bridge
+|   |   +-- Floor 3: 360 sq ft, single rectangular area
+|   +-- Coordinates: [floor, width, length]
+|
++-- 3. PLAYERS & STARTING
+|   |-- Player A: Enters at (5, 12), heads North
+|   |-- Player B: Enters at (9, 7), heads West
+|   +-- Player C: Enters at (9, 17), heads East
+|
++-- 4. CORE GAMEPLAY
+|   |-- Dice
+|   |   |-- Movement Die (1-6)
+|   |   +-- Direction Die (N, E, S, W, 2x Empty)
+|   |-- Entering Maze: Must roll a 6 on the movement die
+|   |-- Movement
+|   |   |-- Move full value of dice roll
+|   |   |-- No partial moves (blocked by walls/edges)
+|   |   +-- Direction changes every 4th throw via Direction Die
+|   +-- Win Condition: First to reach the flag
+|
++-- 5. MAZE FEATURES
+|   |-- Stairs: Connect floors, usually bidirectional, instant transport
+|   |-- Poles: One-way travel (high to low floor)
+|   +-- Walls: Impassable obstacles
+|
++-- 6. SPECIAL AREA: "BAWANA"
+|   |-- Location: Ground Floor, one-way entrance
+|   +-- Effects (12 special cells)
+|       |-- Food Poisoning: Miss 3 turns
+|       |-- Disoriented: +50 points, random movement for 4 throws
+|       |-- Triggered: +50 points, move 2x speed
+|       |-- Happy: +200 points
+|       +-- Random Points: 10-100 points
+|
++-- 7. ADVANCED RULES
+|   |-- Movement Points
+|   |   |-- Start with 100 points
+|   |   |-- Consumed by moving through cells
+|   |   |-- Gained from bonus cells
+|   |   +-- If points <= 0, transported to Bawana
+|   |-- Capturing: Land on another player to send them to the start
+|   |-- Mid-move transport: Stairs/poles activate during a move
+|   +-- Loop Detection: Game must detect and break infinite loops
+|
++-- 8. TECHNICALS
+    |-- Input: Text files for layout (stairs.txt, poles.txt, walls.txt, flag.txt) and a seed number (seed.txt)
+    +-- Output: Specific, formatted messages for every game event and player action
