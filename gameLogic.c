@@ -1,12 +1,10 @@
 #include <stdio.h>
 #include "headers.h"
 
-
 int deactivateBlock(Block blocks[], int index)
 {
     blocks[index].isActive = 0;
-    printf("Deactivated block at index %d (%d,%d,%d)\n",
-           index,
+    printf("Deactivated block: (%d,%d,%d)\n",
            blocks[index].floor,
            blocks[index].x,
            blocks[index].y);
@@ -22,7 +20,8 @@ int handleStairMidpoint(Stairs *stairs, Block blocks[], int stairIndex, int floo
     int midX1 = (int)midXf;
     int midY1 = (int)midYf;
 
-    if ((midXf - midX1 == 0.0f) || (midYf - midY1 == 0.0f)) {
+    if ((midXf - midX1 == 0.0f) || (midYf - midY1 == 0.0f))
+    {
         int index = midFloor * (floorWidth * floorLength) + midY1 * floorWidth + midX1;
         deactivateBlock(blocks, index);
     }
@@ -35,7 +34,7 @@ int loadStairs(const char *filename, Stairs *stairs, Block blocks[], int stairsC
 
     if (fp == NULL)
     {
-        perror("Error opening file");
+        printf("Error opening file");
         return 1;
     }
 
@@ -44,16 +43,17 @@ int loadStairs(const char *filename, Stairs *stairs, Block blocks[], int stairsC
     printf("Loading stairs from %s...\n", filename);
 
     while (fscanf(fp, "[%d,%d,%d,%d,%d,%d] ",
-                                         &stairs[count].startFloor,
-                                         &stairs[count].startX,
-                                         &stairs[count].startY,
-                                         &stairs[count].endFloor,
-                                         &stairs[count].endX,
-                                         &stairs[count].endY) == 6)
-    {   
+                  &stairs[count].startFloor,
+                  &stairs[count].startX,
+                  &stairs[count].startY,
+                  &stairs[count].endFloor,
+                  &stairs[count].endX,
+                  &stairs[count].endY) == 6)
+    {
         stairs[count].direction = 0;
 
-        if ((stairs[count].endFloor - stairs[count].startFloor)!=1) {
+        if ((stairs[count].endFloor - stairs[count].startFloor) != 1)
+        {
             handleStairMidpoint(stairs, blocks, count, floorWidth, floorLength);
         }
         count++;
@@ -86,7 +86,7 @@ int loadPoles(const char *filename, Poles *poles, int polesCount)
 
     if (fp == NULL)
     {
-        perror("Error opening file");
+        printf("Error opening file");
         return 1;
     }
 
@@ -120,13 +120,43 @@ int loadPoles(const char *filename, Poles *poles, int polesCount)
     return 0;
 }
 
+int checkObstructingWalls(Walls *walls, int wallIndex, int floorWidth, int floorLength)
+{
+    FILE *fp = fopen("startingArea.txt", "r");
+
+    if (fp == NULL)
+    {
+        printf("Error opening file");
+        return 1;
+    }
+    int floor, x, y;
+
+    while (fscanf(fp, "[%d,%d,%d] ",
+                  &floor,
+                  &x,
+                  &y) == 3)
+    {
+        int tempIndex = floor * (floorWidth * floorLength) + y * floorWidth + x;
+
+        if (wallIndex == tempIndex)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    fclose(fp);
+}
+
 int loadWalls(const char *filename, Walls *walls, Block blocks[], int wallsCount, int floorWidth, int floorLength)
 {
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL)
     {
-        perror("Error opening file");
+        printf("Error opening file");
         return 1;
     }
 
@@ -135,18 +165,22 @@ int loadWalls(const char *filename, Walls *walls, Block blocks[], int wallsCount
     printf("\nLoading walls from %s...\n", filename);
 
     while (fscanf(fp, "[%d,%d,%d,%d,%d] ",
-                                        &walls[count].floor,
-                                        &walls[count].startX,
-                                        &walls[count].startY,
-                                        &walls[count].endX,
-                                        &walls[count].endY) == 5)
+                  &walls[count].floor,
+                  &walls[count].startX,
+                  &walls[count].startY,
+                  &walls[count].endX,
+                  &walls[count].endY) == 5)
     {
         if (walls[count].endX - walls[count].startX != 0)
         {
             for (int x = walls[count].startX; x <= walls[count].endX; x++)
             {
                 int index = walls[count].floor * (floorWidth * floorLength) + walls[count].startY * floorWidth + x;
-                deactivateBlock(blocks, index);
+
+                if (checkObstructingWalls(walls, index, floorWidth, floorLength) != 1)
+                {
+                    deactivateBlock(blocks, index);
+                }
             }
         }
         else if (walls[count].endY - walls[count].startY != 0)
@@ -154,33 +188,16 @@ int loadWalls(const char *filename, Walls *walls, Block blocks[], int wallsCount
             for (int y = walls[count].startY; y <= walls[count].endY; y++)
             {
                 int index = walls[count].floor * (floorWidth * floorLength) + y * floorWidth + walls[count].startX;
-                deactivateBlock(blocks, index);
-
-                printf("Deactivated block at index %d (%d,%d,%d)\n",
-                       index,
-                       walls[count].floor,
-                       walls[count].startX,
-                       y);  
+                if (checkObstructingWalls(walls, index, floorWidth, floorLength) != 1)
+                {
+                    deactivateBlock(blocks, index);
+                }
             }
         }
-
         count++;
     }
 
-    for (int i = 0; i < count; i++)
-    {
-        printf("Loaded wall %d on floor %d from (%d, %d) to (%d, %d)\n",
-               i + 1,
-               walls[i].floor,
-               walls[i].startX,
-               walls[i].startY,
-               walls[i].endX,
-               walls[i].endY);
-    }
     fclose(fp);
-    printf("Total walls loaded: %d\n", count);
-
-    printf("Finished loading walls.\n");
     return 0;
 }
 
