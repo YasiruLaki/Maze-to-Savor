@@ -1,7 +1,35 @@
 #include <stdio.h>
 #include "headers.h"
 
-int loadStairs(const char *filename, Stairs *stairs, int stairsCount)
+
+int deactivateBlock(Block blocks[], int index)
+{
+    blocks[index].isActive = 0;
+    printf("Deactivated block at index %d (%d,%d,%d)\n",
+           index,
+           blocks[index].floor,
+           blocks[index].x,
+           blocks[index].y);
+    return 0;
+}
+
+int handleStairMidpoint(Stairs *stairs, Block blocks[], int stairIndex, int floorWidth, int floorLength)
+{
+    float midXf = (stairs[stairIndex].startX + stairs[stairIndex].endX) / 2.0f;
+    float midYf = (stairs[stairIndex].startY + stairs[stairIndex].endY) / 2.0f;
+    int midFloor = stairs[stairIndex].endFloor - 1;
+
+    int midX1 = (int)midXf;
+    int midY1 = (int)midYf;
+
+    if ((midXf - midX1 == 0.0f) || (midYf - midY1 == 0.0f)) {
+        int index = midFloor * (floorWidth * floorLength) + midY1 * floorWidth + midX1;
+        deactivateBlock(blocks, index);
+    }
+    return 0;
+}
+
+int loadStairs(const char *filename, Stairs *stairs, Block blocks[], int stairsCount, int floorWidth, int floorLength)
 {
     FILE *fp = fopen(filename, "r");
 
@@ -15,14 +43,19 @@ int loadStairs(const char *filename, Stairs *stairs, int stairsCount)
 
     printf("Loading stairs from %s...\n", filename);
 
-    while (count < stairsCount && fscanf(fp, "[%d,%d,%d,%d,%d,%d] ",
+    while (fscanf(fp, "[%d,%d,%d,%d,%d,%d] ",
                                          &stairs[count].startFloor,
                                          &stairs[count].startX,
                                          &stairs[count].startY,
                                          &stairs[count].endFloor,
                                          &stairs[count].endX,
                                          &stairs[count].endY) == 6)
-    {
+    {   
+        stairs[count].direction = 0;
+
+        if ((stairs[count].endFloor - stairs[count].startFloor)!=1) {
+            handleStairMidpoint(stairs, blocks, count, floorWidth, floorLength);
+        }
         count++;
     }
     for (int i = 0; i < count; i++)
@@ -87,7 +120,7 @@ int loadPoles(const char *filename, Poles *poles, int polesCount)
     return 0;
 }
 
-int loadWalls(const char *filename, Walls *walls, int wallsCount)
+int loadWalls(const char *filename, Walls *walls, Block blocks[], int wallsCount, int floorWidth, int floorLength)
 {
     FILE *fp = fopen(filename, "r");
 
@@ -101,15 +134,39 @@ int loadWalls(const char *filename, Walls *walls, int wallsCount)
 
     printf("\nLoading walls from %s...\n", filename);
 
-    while (count < wallsCount && fscanf(fp, "[%d,%d,%d,%d,%d] ",
+    while (fscanf(fp, "[%d,%d,%d,%d,%d] ",
                                         &walls[count].floor,
                                         &walls[count].startX,
                                         &walls[count].startY,
                                         &walls[count].endX,
                                         &walls[count].endY) == 5)
     {
+        if (walls[count].endX - walls[count].startX != 0)
+        {
+            for (int x = walls[count].startX; x <= walls[count].endX; x++)
+            {
+                int index = walls[count].floor * (floorWidth * floorLength) + walls[count].startY * floorWidth + x;
+                deactivateBlock(blocks, index);
+            }
+        }
+        else if (walls[count].endY - walls[count].startY != 0)
+        {
+            for (int y = walls[count].startY; y <= walls[count].endY; y++)
+            {
+                int index = walls[count].floor * (floorWidth * floorLength) + y * floorWidth + walls[count].startX;
+                deactivateBlock(blocks, index);
+
+                printf("Deactivated block at index %d (%d,%d,%d)\n",
+                       index,
+                       walls[count].floor,
+                       walls[count].startX,
+                       y);  
+            }
+        }
+
         count++;
     }
+
     for (int i = 0; i < count; i++)
     {
         printf("Loaded wall %d on floor %d from (%d, %d) to (%d, %d)\n",
@@ -122,9 +179,80 @@ int loadWalls(const char *filename, Walls *walls, int wallsCount)
     }
     fclose(fp);
     printf("Total walls loaded: %d\n", count);
-    printf("Memory Size of Walls struct: %zu bytes\n", sizeof(Walls));
-    printf("Memory Size of walls array: %zu bytes\n", sizeof(Walls) * wallsCount);
 
     printf("Finished loading walls.\n");
+    return 0;
+}
+
+int handleDeactivation(const char *filename, Block blocks[], int width, int length)
+{
+    FILE *fp = fopen(filename, "r");
+
+    if (fp == NULL)
+    {
+        printf("Error opening file");
+        return 1;
+    }
+
+    int blockFloor, blockX, blockY;
+
+    while (fscanf(fp, "[%d,%d,%d] ",
+                  &blockFloor,
+                  &blockX,
+                  &blockY) == 3)
+    {
+        int index = blockFloor * (width * length) + blockY * width + blockX;
+        deactivateBlock(blocks, index);
+    }
+
+    fclose(fp);
+
+    printf("Finished deactivating blocks.\n");
+    return 0;
+}
+
+int initializeFloors(Floor floors[], Block blocks[], int width, int length)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        floors[i].floor = i;
+        floors[i].width = width;
+        floors[i].length = length;
+
+        for (int x = 0; x < length; x++)
+        {
+            for (int y = 0; y < width; y++)
+            {
+                int index = i * (width * length) + (x * width) + y;
+                blocks[index].floor = i;
+                blocks[index].x = y;
+                blocks[index].y = x;
+                blocks[index].isActive = 1;
+                blocks[index].movPoints = 0;
+            }
+        }
+        printf("Initialized floor %d with dimensions (%d, %d)\n", floors[i].floor + 1, floors[i].width, floors[i].length);
+    }
+
+    handleDeactivation("deactiveBlocks.txt", blocks, width, length);
+
+    for (int i = 0; i < 3; i++)
+    {
+        printf("Blocks for floor %d:\n", floors[i].floor + 1);
+        for (int x = 0; x < length; x++)
+        {
+            for (int y = 0; y < width; y++)
+            {
+                int index = i * (width * length) + x * width + y;
+                printf("  Block at (%d, %d, %d): isActive=%d, movPoints=%d\n",
+                       blocks[index].floor,
+                       blocks[index].x,
+                       blocks[index].y,
+                       blocks[index].isActive,
+                       blocks[index].movPoints);
+            }
+        }
+    }
+
     return 0;
 }
