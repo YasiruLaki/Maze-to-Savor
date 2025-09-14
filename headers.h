@@ -38,10 +38,9 @@ typedef struct
     int x;
     int y;
     int isActive;
-    int movPoints;  
-    char blockType; 
-    int consumable; 
-    int bonus;      
+    int value;
+    char blockType;
+    char valueType; // 'c' for consumable, 'b' for bonus, '\0' for none
 } Block;
 
 typedef struct
@@ -56,24 +55,23 @@ typedef struct
     int floor;
     int PosX;
     int PosY;
-    int direction; 
+    int direction;
     int movPoints;
     int speed;
-    char playerName;
-    char isStarted;
     int missTurns;
     int disorientedTurns;
-    int triggeredTurns;
-    int speedMultiplier;
+    char playerName;
+    char isStarted;
+    char isFoodPoisoned;
+    char isDisoriented;
 } Player;
 
 typedef struct
 {
     int y;
     int x;
-    int type;   // 0: Poisonous, 1: Disoriented, 2: Triggered, 3: Happy, 4: Random
+    int type; // 0: Poisonous, 1: Disoriented, 2: Triggered, 3: Happy, 4: Random
 } BawanaCell;
-
 
 extern Block *blocks;
 extern Walls *walls;
@@ -88,22 +86,22 @@ void initializeFloors(Floor floors[], Block blocks[], int width, int length, int
 void handleDeactivation(const char *filename, Block blocks[], int width, int length, int flagIndex);
 int readFlagPosition(int floorWidth, int floorLength);
 
-void rollMoveDice(int *moveDice);
+void rollMoveDice(int *moveDice, Player *p);
 void rollDirectionDice(int *directionDice);
 
 void randomizeStairDirections(Stairs *stairs, int stairsCount);
-int findBestStair(int x, int y, int floor, Stairs stairs[], int stairsCount, int flagIndex, int floorWidth, int floorLength, int canGoUp);
+int findBestStair(int x, int y, int floor, Stairs stairsArr[], int stairsCount, int flagIndex, int floorWidth, int floorLength);
 double calculateDistanceToFlag(int x, int y, int floor, int flagIndex, int floorWidth, int floorLength);
-
-
 
 unsigned int loadSeed(const char *path);
 int countLines(const char *filename);
 
 int canMove(Player *p, int moveDice, Block blocks[], int floorWidth, int floorLength,
             Stairs stairs[], int stairsCount, Poles poles[], int polesCount, int flagIndex);
-int movePlayerStep(Player *p, Block blocks[], int floorWidth, int floorLength,
+int movePlayerStep(Player *p, Player players[], Block blocks[], int floorWidth, int floorLength,
                    Stairs stairs[], int stairsCount, Poles poles[], int polesCount, int flagIndex);
+
+void sendToBawana(Player *p);
 
 void resetPlayerToStart(Player *p);
 
